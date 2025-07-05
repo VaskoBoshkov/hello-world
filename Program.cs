@@ -2,6 +2,6 @@ var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
 // Change the text here to update your visible version
-app.MapGet("/", () => "Hello World version 3");
+app.MapGet("/", () => "Hello World version 4");
 
 app.Run();
