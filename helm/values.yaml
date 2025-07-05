@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: apetkov81/hello-world
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: NodePort
+  port: 80
+  nodePort: 32100
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: hello-world.alekspetkov.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: hello-world-tls
+      hosts:
+        - hello-world.alekspetkov.com
+
+resources: {}
+autoscaling:
+  enabled: false
