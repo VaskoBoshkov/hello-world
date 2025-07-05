@@ -7,10 +7,7 @@ on:
 env:
   AWS_REGION: us-east-1
   IMAGE_REPO: hello-world
-  # Option 1: Use repository variable (safer for multi-environment)
-  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
-  # Option 2 (if you didn’t add a variable): uncomment the line below
-  # ECR_REGISTRY: 454563073530.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
 
 jobs:
   build-and-push:
@@ -28,7 +25,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
