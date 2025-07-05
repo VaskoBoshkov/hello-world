@@ -6,8 +6,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REGISTRY: 454563073530.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
   IMAGE_REPO: hello-world
+  GIT_PAT: ${{ secrets.GIT_PAT }}
 
 jobs:
   build-and-push:
@@ -38,9 +39,6 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER} .
           docker push $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER}
-        env:
-          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
-          IMAGE_REPO: ${{ env.IMAGE_REPO }}
 
       - name: Update Helm values.yaml with new image tag
         run: |
@@ -50,6 +48,4 @@ jobs:
           git add helm/values.yaml
           git commit -m "Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]" || echo "No changes to commit"
           git push https://$GIT_PAT@github.com/${GITHUB_REPOSITORY}.git HEAD:main
-        env:
-          GIT_PAT: ${{ secrets.GIT_PAT }}
 
