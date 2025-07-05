@@ -1,8 +1,8 @@
-name: CI/CD Docker Build and ArgoCD Sync
+name: Build and Deploy to ECR
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 env:
   AWS_REGION: us-east-1
@@ -10,12 +10,18 @@ env:
   IMAGE_REPO: hello-world
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -26,24 +32,24 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
+      - name: Build, tag, and push Docker image to ECR
         run: |
-          docker build -t $ECR_REGISTRY/$IMAGE_REPO:${{ github.run_number }} .
-          docker tag $ECR_REGISTRY/$IMAGE_REPO:${{ github.run_number }} $ECR_REGISTRY/$IMAGE_REPO:latest
-
-      - name: Push Docker image to ECR
-        run: |
-          docker push $ECR_REGISTRY/$IMAGE_REPO:${{ github.run_number }}
-          docker push $ECR_REGISTRY/$IMAGE_REPO:latest
+          docker build -t $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER} .
+          docker push $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER}
+        env:
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          IMAGE_REPO: ${{ env.IMAGE_REPO }}
 
       - name: Update Helm values.yaml with new image tag
         run: |
-          sed -i "s/tag: .*/tag: $GITHUB_RUN_NUMBER/" helm/values.yaml
+          sed -i "s/tag: .*/tag: ${GITHUB_RUN_NUMBER}/" helm/values.yaml
           git config user.email "ci-bot@yourdomain.com"
           git config user.name "CI Bot"
           git add helm/values.yaml
-          git commit -m "Update image tag to $GITHUB_RUN_NUMBER [skip ci]" || echo "No changes to commit"
-          git push https://${{ secrets.GIT_PAT }}@github.com/${{ github.repository }}.git HEAD:main
+          git commit -m "Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]" || echo "No changes to commit"
+          git push https://$GIT_PAT@github.com/${GITHUB_REPOSITORY}.git HEAD:main
+        env:
+          GIT_PAT: ${{ secrets.GIT_PAT }}
+
