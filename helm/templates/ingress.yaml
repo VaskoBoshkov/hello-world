@@ -10,18 +10,26 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
-    - host: {{ .Values.ingress.hosts[0].host }}
+  {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
       http:
         paths:
-          - path: {{ .Values.ingress.hosts[0].paths[0].path }}
-            pathType: {{ .Values.ingress.hosts[0].paths[0].pathType }}
+        {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "hello-world.fullname" . }}
+                name: {{ include "hello-world.fullname" $ }}
                 port:
-                  number: {{ .Values.service.port }}
+                  number: {{ $.Values.service.port }}
+        {{- end }}
+  {{- end }}
   tls:
+  {{- range .Values.ingress.tls }}
     - hosts:
-        - {{ .Values.ingress.hosts[0].host }}
-      secretName: {{ .Values.ingress.tls[0].secretName }}
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
 {{- end }}
