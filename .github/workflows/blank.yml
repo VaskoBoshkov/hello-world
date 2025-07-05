@@ -41,15 +41,16 @@ jobs:
           docker push $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER}
 
       - name: Update Helm values.yaml with new image tag
-        run: sed -i "s/tag: .*/tag: ${GITHUB_RUN_NUMBER}/" helm/values.yaml
+        run: | 
+          sed -i "s/tag: .*/tag: ${GITHUB_RUN_NUMBER}/" helm/values.yaml
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-        commit_message: Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]
-        branch: main
-        file_pattern: helm/values.yaml
-        commit_user_name: CI Bot
-        commit_user_email: ci-bot@yourdomain.com
-        github_token: ${{ secrets.GIT_PAT }}
+          commit_message: Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]
+          branch: main
+          file_pattern: helm/values.yaml
+          commit_user_name: CI Bot
+          commit_user_email: ci-bot@yourdomain.com
+          github_token: ${{ secrets.GIT_PAT }}
 
