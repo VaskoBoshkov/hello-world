@@ -6,9 +6,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
   IMAGE_REPO: hello-world
-  GIT_PAT: ${{ secrets.GIT_PAT }}
+
+permissions:
+  contents: write
 
 jobs:
   build-and-push:
@@ -32,25 +33,20 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push Docker image to ECR
         run: |
-          docker build -t $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER} .
-          docker push $ECR_REGISTRY/$IMAGE_REPO:${GITHUB_RUN_NUMBER}
+          docker build -t ${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_REPO }}:${GITHUB_RUN_NUMBER} .
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_REPO }}:${GITHUB_RUN_NUMBER}
 
       - name: Update Helm values.yaml with new image tag
-        run: | 
+        run: |
           sed -i "s/tag: .*/tag: ${GITHUB_RUN_NUMBER}/" helm/values.yaml
-
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]
-          branch: main
-          file_pattern: helm/values.yaml
-          commit_user_name: CI Bot
-          commit_user_email: ci-bot@yourdomain.com
-          github_token: ${{ secrets.GIT_PAT }}
-
+          git config user.email "ci-bot@yourdomain.com"
+          git config user.name "CI Bot"
+          git add helm/values.yaml
+          git commit -m "Update image tag to ${GITHUB_RUN_NUMBER} [skip ci]" || echo "No changes to commit"
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
