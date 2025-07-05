@@ -1,4 +1,4 @@
-name: Build and Push to AWS ECR
+name: CI/CD Docker Build and ArgoCD Sync
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  ECR_REGISTRY: 454563073530.dkr.ecr.us-east-1.amazonaws.com
   IMAGE_REPO: hello-world
-  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
       - name: Build Docker image
         run: |
@@ -37,10 +39,11 @@ jobs:
           docker push $ECR_REGISTRY/$IMAGE_REPO:${{ github.run_number }}
           docker push $ECR_REGISTRY/$IMAGE_REPO:latest
 
-      - name: Commit and push Helm changes
+      - name: Update Helm values.yaml with new image tag
         run: |
-          git config --global user.email "ci-bot@yourdomain.com"
-          git config --global user.name "CI Bot"
+          sed -i "s/tag: .*/tag: $GITHUB_RUN_NUMBER/" helm/values.yaml
+          git config user.email "ci-bot@yourdomain.com"
+          git config user.name "CI Bot"
           git add helm/values.yaml
-          git commit -m "Update image tag to $GITHUB_RUN_NUMBER"
-          git push https://x-access-token:${{ secrets.GIT_PAT }}@github.com/${{ github.repository }} HEAD:main
+          git commit -m "Update image tag to $GITHUB_RUN_NUMBER [skip ci]" || echo "No changes to commit"
+          git push https://${{ secrets.GIT_PAT }}@github.com/${{ github.repository }}.git HEAD:main
