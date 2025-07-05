@@ -1,0 +1,27 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "hello-world.fullname" . }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.hosts[0].host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.hosts[0].paths[0].path }}
+            pathType: {{ .Values.ingress.hosts[0].paths[0].pathType }}
+            backend:
+              service:
+                name: {{ include "hello-world.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hosts[0].host }}
+      secretName: {{ .Values.ingress.tls[0].secretName }}
+{{- end }}
