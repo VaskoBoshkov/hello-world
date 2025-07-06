@@ -23,17 +23,20 @@ Adapt the patterns and workflows shown here to your team’s environment.**
 ## Migration Approach (Summary)
 
 1. **Dual Deployment:**  
-   Deploy to both ECS and EKS/Kubernetes (on-prem or cloud) using the same container image and application logic.
-2. **WARNING** 
-   Do not connect the real resources like DB's, Redis etc in the k8s/minikube deployment, rather work for testing on restored DB, temp Redis etc. 
+   - Deploy to both ECS and EKS/Kubernetes (on-prem or cloud) using the same container image and application logic. 
+   - WARNING!!!- While testing the k8s/minikube app don't use the real production resources like DB's, Redis etc in the k8s/minikube deployment, 
+     rather work for testing on restored DB, temp Redis etc. 
+
 2. **Validation:**  
    - Perform stress/load testing on the new environment using (`k6.io`) before migration.
    - Ensure consistent logging between ECS and K8s.
+   
 3. **Canary Traffic Shift:**  
-   Use Route53 or an ALB to split live traffic:  
-   Start with 95% ECS / 5% EKS, monitor, then gradually increase EKS share (70/30, 50/50, ...).
+   - Use Route53 or an ALB to split live traffic:  
+   - Start with 95% ECS / 5% EKS, monitor, then gradually increase EKS share (70/30, 50/50, ...).
+
 4. **Final Cutover:**  
-   Once performance and stability are proven, route 100% of traffic to EKS/K8s and decommission ECS deployment.
+   - Once performance and stability are proven, route 100% of traffic to EKS/K8s and decommission ECS deployment.
 
 ---
 
@@ -78,16 +81,3 @@ This demo **does not** cover the following (required for production):
   See `.github/workflows/structurizr.yml`.
 
 ---
-
-## Example Pipeline (Mermaid)
-
-```mermaid
-flowchart LR
-    Dev(Developer) -->|pushes code| GitHub[GitHub Repo]
-    GitHub -->|triggers| Actions[GitHub Actions]
-    Actions -->|builds & pushes image| ECR[Amazon ECR]
-    Actions -->|deploy to ECS| ECS[Amazon ECS]
-    Actions -->|deploy via Helm| K8S[Kubernetes (EKS/Minikube)]
-    Actions -->|commit Helm tag| GitHub
-    GitHub -->|watched by| ArgoCD[Argo CD]
-    ArgoCD -->|syncs manifests| K8S
