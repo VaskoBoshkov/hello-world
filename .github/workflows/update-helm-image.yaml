@@ -2,7 +2,7 @@ name: Bump Helm Chart
 
 on:
   workflow_run:
-    workflows: [ "Deploy to ECS" ]
+    workflows: [ "Build & Push Image to AWS ECR" ]
     types: [ completed ]
 
 permissions:
@@ -15,11 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download build artifact
+      - name: Download image tag
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: build-image.yml
-          run_id:  ${{ github.event.workflow_run.triggering_workflow_run.id }}
+          run_id:  ${{ github.event.workflow_run.id }}
           name:    image-meta
 
       - name: Read tag
