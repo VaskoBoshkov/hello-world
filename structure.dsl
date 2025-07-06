@@ -5,8 +5,8 @@ workspace "CI/CD pipeline" {
 
     GitHub = SoftwareSystem "GitHub Actions" {
       Build  = Container "Build & Push"
-      Deploy = Container "Deploy to ECS"  "Runs only when env variable DEPLOY_ECS=true"
-      Helm   = Container "Update Helm"    "Runs only when env variable UPDATE_HELM=true"
+      Deploy = Container "Deploy to ECS"  "Runs only when variable DEPLOY_ECS=true"
+      Helm   = Container "Update Helm"    "Runs only when variable UPDATE_HELM=true"
     }
 
     ECR  = SoftwareSystem "Amazon ECR"
