@@ -42,7 +42,7 @@ Adapt the patterns and workflows shown here to your team’s environment.**
 - **CI/CD Pipeline Examples:**  
   See `.github/workflows/` for build, deploy-to-ECS, and Helm chart update workflows.
 - **Sample Structurizr DSL and Diagrams:**  
-  All architectural diagrams are generated automatically from [`docs/ci-cd.dsl`](docs/ci-cd.dsl).  
+  All architectural diagrams are generated automatically from [`docs/structure.dsl`](docs/structure.dsl).  
   Diagrams are output to [`docs/diagrams/`](docs/diagrams/), always up to date.
 - **Migration Mermaid Diagram:**  
   ![Diagram](docs/diagrams/structurizr-pipeline.mmd)  
