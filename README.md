@@ -14,7 +14,7 @@ Adapt the patterns and workflows shown here to your team’s environment.**
 ## Objectives
 
 - Show a safe, gradual migration from ECS to Kubernetes.
-- Prove zero-downtime techniques: dual-deploy, canary/cutover via Route53.
+- Prove zero-downtime techniques: dual-deploy, canary/cutover via Route53 or other DNS system.
 - Present a reference CI/CD workflow and migration architecture.
 - Share best-practices for pre-migration validation and future production hardening.
 
@@ -75,7 +75,7 @@ This demo **does not** cover the following (required for production):
   - `deploy-ecs.yml`: Conditionally deploys to ECS (toggle with repo variable).
   - `update-helm-chart.yml`: Conditionally bumps Helm chart with new tag (toggle with repo variable).
 - **Architecture Diagrams:**  
-  - Written in Structurizr DSL ([`docs/ci-cd.dsl`](docs/ci-cd.dsl)).
+  - Written in Structurizr DSL ([`docs/ci-cd.dsl`](docs/structure.dsl)).
   - Rendered as PNG/Mermaid on each push—view in [`docs/diagrams/`](docs/diagrams/).
 - **Diagram update workflow:**  
   See `.github/workflows/structurizr.yml`.
