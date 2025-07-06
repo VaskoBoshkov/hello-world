@@ -1,0 +1,38 @@
+name: Bump Helm Chart
+
+on:
+  workflow_run:
+    workflows: [ "Deploy to ECS" ]
+    types: [ completed ]
+
+permissions:
+  contents: write
+
+jobs:
+  bump-chart:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: build-image.yml
+          run_id:  ${{ github.event.workflow_run.triggering_workflow_run.id }}
+          name:    image-meta
+
+      - name: Read tag
+        id: tag
+        run: echo "TAG=$(cat image_tag.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Update values.yaml
+        run: |
+          sed -i "s/tag: .*/tag: ${TAG}/" helm/hello-world/values.yaml
+          git config user.email "ci-bot@yourdomain.com"
+          git config user.name  "CI Bot"
+          git add helm/hello-world/values.yaml
+          git commit -m "chore(chart): bump image tag to ${TAG}" || exit 0
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
