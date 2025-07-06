@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download image tag
+      - name: Download tag
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: build-image.yml
@@ -24,11 +24,15 @@ jobs:
 
       - name: Read tag
         id: tag
-        run: echo "TAG=$(cat image_tag.txt)" >> "$GITHUB_OUTPUT"
+        run: echo "TAG=$(cat image_tag.txt)" >> "$GITHUB_ENV"
 
-      - name: Update values.yaml
+      # use yq to patch the YAML correctly (keeps indentation)
+      - uses: mikefarah/yq@v4
+        with:
+          cmd: yq -i '.image.tag = env.TAG' helm/hello-world/values.yaml
+
+      - name: Commit chart change
         run: |
-          sed -i "s/tag: .*/tag: ${TAG}/" helm/hello-world/values.yaml
           git config user.email "ci-bot@yourdomain.com"
           git config user.name  "CI Bot"
           git add helm/hello-world/values.yaml
