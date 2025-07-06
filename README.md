@@ -1,83 +1,111 @@
-# ECS to EKS/Kubernetes On-Prem Migration – Reference Demo (PoC)
+# ECS to EKS/Kubernetes On-Prem Migration – PoC
 
 ## Introduction
 
-This repository provides a **proof-of-concept (PoC)** and reference for migrating a containerized application (`hello-world`) from **AWS ECS** to **Kubernetes** (AWS EKS or on-premises k8s/Minikube).  
-It demonstrates architecture, pipelines, and a safe migration *approach*—it is **not a plug-and-play starter kit**.
-
-:warning: **This PoC does not provision or manage infrastructure for you.  
-Do not simply clone and expect an out-of-the-box deployment.  
-Adapt the patterns and workflows shown here to your team’s environment.**
+This is a **Proof-of-Concept (PoC)** for migrating the `hello-world` app from **AWS ECS** to **Kubernetes** (AWS EKS or on-premises Minikube).  
+This repo is a **reference** for architecture and migration patterns—**not a turnkey solution**.  
+You’ll need to adapt the ideas and workflows here to your own environment.
 
 ---
 
-## Objectives
+## ECS vs EKS/Minikube – Which and Why
 
-- Show a safe, gradual migration from ECS to Kubernetes.
-- Prove zero-downtime techniques: dual-deploy, canary/cutover via Route53 or other DNS system.
-- Present a reference CI/CD workflow and migration architecture.
-- Share best-practices for pre-migration validation and future production hardening.
+**ECS**  
+- Managed by AWS, easy to start, but only works on AWS.
+- Great for simple scaling with minimal cluster management.
+- Not portable; you’re AWS-locked.
+
+**EKS/Kubernetes (on AWS or Minikube/on-prem)**  
+- The industry standard for container apps; runs on AWS or any hardware.
+- Makes it easy to move between cloud and on-premises.
+- Lets you use the full Kubernetes ecosystem: ArgoCD, Helm, Prometheus, etc.
+
+|        | **ECS**                   | **EKS/K8s/Minikube**          |
+|--------|---------------------------|-------------------------------|
+| **Where it runs**  | AWS only                  | AWS or any server/on-prem     |
+| **Flexibility**    | Limited (ECS features)    | Full K8s features             |
+| **Portability**    | AWS locked-in             | Easy to move (cloud ↔ on-prem)|
+| **Community**      | AWS-focused               | Huge open-source ecosystem    |
+| **Migration**      | Must rewrite to leave AWS | Same setup anywhere           |
+
+**Summary:**  
+- **ECS** is simple for AWS but not portable.
+- **EKS/K8s** is future-proof and can run anywhere.
 
 ---
 
-## Migration Approach (Summary)
+## Why Helm?
 
-1. **Dual Deployment:**  
-   - Deploy to both ECS and EKS/Kubernetes (on-prem or cloud) using the same container image and application logic. 
-   - WARNING!!!- While testing the k8s/minikube app don't use the real production resources like DB's, Redis etc in the k8s/minikube deployment, 
-     rather work for testing on restored DB, temp Redis etc. 
+- **Helm** is the package manager for Kubernetes.
+- It makes deploying, upgrading, and rolling back apps easy.
+- Keeps your deployment config in one place.
 
-2. **Validation:**  
-   - Perform stress/load testing on the new environment using (`k6.io`) before migration.
-   - Ensure consistent logging between ECS and K8s.
-   
-3. **Canary Traffic Shift:**  
-   - Use Route53 or an ALB to split live traffic:  
-   - Start with 95% ECS / 5% EKS, monitor, then gradually increase EKS share (70/30, 50/50, ...).
+## Why Argo CD?
 
-4. **Final Cutover:**  
-   - Once performance and stability are proven, route 100% of traffic to EKS/K8s and decommission ECS deployment.
+- **Argo CD** brings GitOps to Kubernetes.
+- Watches your Git repo; applies changes automatically.
+- Gives you audit, rollback, and true “Git as the source of truth”.
+
+## Why Terraform for EKS?
+
+- **Terraform** defines your cloud infrastructure as code (including EKS).
+- Ensures repeatable, reviewable cluster setup.
+- Destroy/recreate environments with confidence.
+
+---
+
+## Simple Migration Plan
+
+1. **Deploy on ECS** (current).
+2. **Deploy same app on EKS or Minikube** using Helm and Argo CD.
+3. **Test the K8s deployment** with [k6](https://k6.io/) (use test DBs, not production!).
+4. **Shift traffic gradually:** Use Route53 (or other DNS) to send 5% to K8s, 95% to ECS. Monitor everything.
+5. **Increase K8s traffic** as confidence grows (30%, 50%, then 100%).
+6. **Turn off ECS** after all traffic is stable on K8s.
 
 ---
 
 ## What's in this PoC
 
-- **CI/CD Pipeline Examples:**  
-  See `.github/workflows/` for build, deploy-to-ECS, and Helm chart update workflows.
-- **Sample Structurizr DSL and Diagrams:**  
-  All architectural diagrams are generated automatically from [`docs/structure.dsl`](docs/structure.dsl).  
-  Diagrams are output to [`docs/diagrams/`](docs/diagrams/), always up to date.
-- **Migration Mermaid Diagram:**  
-  ![Diagram](docs/diagrams/structurizr-pipeline.mmd)  
-  (Or view the latest in the repo.)
+- **CI/CD Pipelines:**  
+  Example GitHub Actions for build, deploy-to-ECS, and Helm chart updates (see `.github/workflows/`).
+- **Sample Diagrams:**  
+  Architecture diagrams are auto-generated from [`docs/structure.dsl`](docs/structure.dsl)  
+  (PNG/Mermaid in [`docs/diagrams/`](docs/diagrams/)).
+- **Helm chart:**  
+  Example app deployment in [`helm/hello-world/`](helm/hello-world/).
 
 ---
 
-## Out of Scope for This PoC
+## What’s Not Included (For Production)
 
-This demo **does not** cover the following (required for production):
-
-- EKS or cluster creation (should use Terraform/IaC in production)
-- Monitoring, logging aggregation, or alerting stacks
-- Encryption of secrets/config (EKS: use KMS, Sealed Secrets, etc.)
-- Node termination handler, cluster autoscaler, RBAC, pod/network policies
-- Disaster recovery and backup
-- Copy/paste deployment for other environments
-
-**For a production rollout, all of the above must be addressed.**
+- EKS cluster creation (should use Terraform)
+- Logging/monitoring/alerting (add before go-live)
+- Secrets encryption, RBAC, autoscaling, pod/network policies, DR/backup
+- Copy-paste deployment for production
 
 ---
 
-## Pipeline & Diagram Path
+## How to Use This Reference
 
-- **Workflows:**  
-  - `build-image.yml`: Builds/pushes image to ECR.
-  - `deploy-ecs.yml`: Conditionally deploys to ECS (toggle with repo variable).
-  - `update-helm-chart.yml`: Conditionally bumps Helm chart with new tag (toggle with repo variable).
-- **Architecture Diagrams:**  
-  - Written in Structurizr DSL ([`docs/ci-cd.dsl`](docs/structure.dsl)).
-  - Rendered as PNG/Mermaid on each push—view in [`docs/diagrams/`](docs/diagrams/).
-- **Diagram update workflow:**  
-  See `.github/workflows/structurizr.yml`.
+- Review and adapt the YAMLs in `.github/workflows/`
+- Prepare your own AWS/K8s resources (not included)
+- Use the Helm chart as a template
+- Run k6 load testing
+- Gradually migrate using dual-deploy and traffic-splitting
 
 ---
+
+## Key Takeaways
+
+- **ECS:** Simple on AWS, not portable.
+- **EKS/K8s:** Portable, extensible, modern DevOps stack.
+- **Helm:** Easy app deployment/rollback.
+- **Argo CD:** GitOps, audit, rollback, “source of truth”.
+- **Terraform:** Best-practice, reproducible cloud setup.
+
+---
+
+_This repo is for demo/reference only.  
+Use the ideas here to guide your own migration, not for copy-paste deployment._
+
