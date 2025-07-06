@@ -1,20 +1,93 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# ECS to EKS/Kubernetes On-Prem Migration – Reference Demo (PoC)
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+## Introduction
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+This repository provides a **proof-of-concept (PoC)** and reference for migrating a containerized application (`hello-world`) from **AWS ECS** to **Kubernetes** (AWS EKS or on-premises k8s/Minikube).  
+It demonstrates architecture, pipelines, and a safe migration *approach*—it is **not a plug-and-play starter kit**.
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+:warning: **This PoC does not provision or manage infrastructure for you.  
+Do not simply clone and expect an out-of-the-box deployment.  
+Adapt the patterns and workflows shown here to your team’s environment.**
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+---
+
+## Objectives
+
+- Show a safe, gradual migration from ECS to Kubernetes.
+- Prove zero-downtime techniques: dual-deploy, canary/cutover via Route53.
+- Present a reference CI/CD workflow and migration architecture.
+- Share best-practices for pre-migration validation and future production hardening.
+
+---
+
+## Migration Approach (Summary)
+
+1. **Dual Deployment:**  
+   Deploy to both ECS and EKS/Kubernetes (on-prem or cloud) using the same container image and application logic.
+2. **WARNING** 
+   Do not connect the real resources like DB's, Redis etc in the k8s/minikube deployment, rather work for testing on restored DB, temp Redis etc. 
+2. **Validation:**  
+   - Perform stress/load testing on the new environment using (`k6.io`) before migration.
+   - Ensure consistent logging between ECS and K8s.
+3. **Canary Traffic Shift:**  
+   Use Route53 or an ALB to split live traffic:  
+   Start with 95% ECS / 5% EKS, monitor, then gradually increase EKS share (70/30, 50/50, ...).
+4. **Final Cutover:**  
+   Once performance and stability are proven, route 100% of traffic to EKS/K8s and decommission ECS deployment.
+
+---
+
+## What's in this PoC
+
+- **CI/CD Pipeline Examples:**  
+  See `.github/workflows/` for build, deploy-to-ECS, and Helm chart update workflows.
+- **Sample Structurizr DSL and Diagrams:**  
+  All architectural diagrams are generated automatically from [`docs/ci-cd.dsl`](docs/ci-cd.dsl).  
+  Diagrams are output to [`docs/diagrams/`](docs/diagrams/), always up to date.
+- **Migration Mermaid Diagram:**  
+  ![Diagram](docs/diagrams/SystemContext-ci.png)  
+  (Or view the latest in the repo.)
+
+---
+
+## Out of Scope for This PoC
+
+This demo **does not** cover the following (required for production):
+
+- EKS or cluster creation (should use Terraform/IaC in production)
+- Monitoring, logging aggregation, or alerting stacks
+- Encryption of secrets/config (EKS: use KMS, Sealed Secrets, etc.)
+- Node termination handler, cluster autoscaler, RBAC, pod/network policies
+- Disaster recovery and backup
+- Copy/paste deployment for other environments
+
+**For a production rollout, all of the above must be addressed.**
+
+---
+
+## Pipeline & Diagram Path
+
+- **Workflows:**  
+  - `build-image.yml`: Builds/pushes image to ECR.
+  - `deploy-ecs.yml`: Conditionally deploys to ECS (toggle with repo variable).
+  - `update-helm-chart.yml`: Conditionally bumps Helm chart with new tag (toggle with repo variable).
+- **Architecture Diagrams:**  
+  - Written in Structurizr DSL ([`docs/ci-cd.dsl`](docs/ci-cd.dsl)).
+  - Rendered as PNG/Mermaid on each push—view in [`docs/diagrams/`](docs/diagrams/).
+- **Diagram update workflow:**  
+  See `.github/workflows/structurizr.yml`.
+
+---
+
+## Example Pipeline (Mermaid)
+
+```mermaid
+flowchart LR
+    Dev(Developer) -->|pushes code| GitHub[GitHub Repo]
+    GitHub -->|triggers| Actions[GitHub Actions]
+    Actions -->|builds & pushes image| ECR[Amazon ECR]
+    Actions -->|deploy to ECS| ECS[Amazon ECS]
+    Actions -->|deploy via Helm| K8S[Kubernetes (EKS/Minikube)]
+    Actions -->|commit Helm tag| GitHub
+    GitHub -->|watched by| ArgoCD[Argo CD]
+    ArgoCD -->|syncs manifests| K8S
