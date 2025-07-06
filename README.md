@@ -30,17 +30,22 @@ This is a foundational step for enabling true multi-environment portability and 
    - Create a **Helm chart** (`helm/hello-world/`) that accurately reflects the ECS configuration and runtime environment, including ports, secrets, and environment variables.  
    - Ensure the Helm chart supports configuration for both EKS and on-prem clusters through values overlays.
 
-3. **Set Up CI/CD:**  
+3. **Load and Performance Testing:**  
+   - Use tools like [k6.io](https://k6.io/) to perform stress and load testing on the app in the Kubernetes environment.  
+   - Validate the app’s scalability and behavior under expected load to ensure readiness for production migration.
+
+4. **Set Up CI/CD:**  
    - Implement GitHub Actions workflows that build and push container images.  
    - Use repository variables to control deployment targets, enabling selective or simultaneous deployments to ECS, EKS, or both environments.  
    - These workflows allow fine-grained control during migration, reducing risk by enabling incremental rollout.
 
-4. **Dual Deployment:**  
+5. **Dual Deployment:**  
    - Leverage the pipeline toggles to deploy the same application version concurrently to **ECS** and **EKS/Kubernetes** (including on-prem Minikube for testing).  
    - This enables validation in parallel environments without service interruption.  
    - You then have two live endpoints:  
      - **ECS:** [ecs-hello-world.alekspetkov.com](https://ecs-hello-world.alekspetkov.com)  
      - **K8s:** [hello-world.alekspetkov.com](https://hello-world.alekspetkov.com)  
+     - **Argo CD UI:** [argo.alekspetkov.com](https://argo.alekspetkov.com) (User/password provided on request) — use this to monitor live deployments and sync status in real time.
 
 ---
 
@@ -55,7 +60,7 @@ This is a foundational step for enabling true multi-environment portability and 
 
 ---
 
-## How Traffic Cutover Would Happen 
+## How Traffic Cutover Would Happen
 
 In a real migration, **Route53** or another DNS provider would be configured to split traffic between ECS and Kubernetes backends without downtime:  
 
@@ -74,12 +79,9 @@ This approach ensures a controlled, zero-downtime migration with the ability to 
 > - Stateful components (sessions, caches, databases) must be shared and accessible from both ECS and Kubernetes environments—e.g., a shared Redis or RDS instance.  
 > - The application must not rely on ephemeral in-memory session or connection state local to pods or tasks.  
 > - Health checks must be correctly configured for all weighted DNS targets, so traffic shifts away from unhealthy endpoints automatically.  
-> - DNS TTL values should be kept low (≤ 60 seconds) to enable rapid traffic shifts and rollbacks.
-
-> If these conditions are not met—such as with sticky sessions, WebSockets, or other stateful communication—weighted DNS alone is insufficient for zero-downtime migration. In these cases, consider:  
-> - Using load balancer sticky sessions (e.g., ALB cookie affinity) where applicable, although these may not be supported in all environments, especially on-prem.  
-> - Implementing a service mesh (such as [Istio](https://istio.io/) or [Linkerd](https://linkerd.io/)) to enable fine-grained traffic splitting and routing at the application/protocol level.  
-> - Planning blue/green or canary deployments with scheduled maintenance windows, where a controlled cutover can be orchestrated with brief downtime.
+> - DNS TTL values should be kept low (≤ 60 seconds) to enable rapid traffic shifts and rollbacks.  
+>
+> This means weighted DNS alone is insufficient for zero-downtime migration if these conditions are unmet, such as with sticky sessions, WebSockets, or other stateful communication.
 
 ---
 
@@ -87,7 +89,7 @@ This approach ensures a controlled, zero-downtime migration with the ability to 
 
 - Deployment workflows to ECS and Kubernetes are toggled via repository variables—no code changes needed to switch targets.  
 - This flexible toggle approach allows for incremental rollout, testing, and rollback without pipeline rewrites.  
-- Repository variables include `DEPLOY_ECS`, `DEPLOY_K8S`, and `UPDATE_HELM`, controlling respective deployment steps.
+- Repository variables include `DEPLOY_ECS` and `UPDATE_HELM`, controlling respective deployment steps.
 
 ---
 
@@ -136,7 +138,7 @@ This approach ensures a controlled, zero-downtime migration with the ability to 
 
 ---
 
-## What’s Out of Scope (for Production)
+## What’s Out of Scope (for Production ready clusters)
 
 - Automated provisioning of EKS or Minikube clusters.  
 - Centralized logging, monitoring, and alerting infrastructure.  
