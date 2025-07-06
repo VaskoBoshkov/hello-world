@@ -1,0 +1,39 @@
+name: Controller CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_to_argo:
+        description: 'Deploy to ArgoCD?'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      deploy_to_ecs:
+        description: 'Deploy to ECS?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+jobs:
+  run-selected-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Build and Push (ArgoCD) Pipeline
+        if: ${{ github.event.inputs.deploy_to_argo == 'true' }}
+        uses: peter-evans/workflow-dispatch@v3
+        with:
+          workflow: build-push.yaml
+          ref: main
+
+      - name: Trigger ECS Deploy Pipeline
+        if: ${{ github.event.inputs.deploy_to_ecs == 'true' }}
+        uses: peter-evans/workflow-dispatch@v3
+        with:
+          workflow: deploy-ecs.yaml
+          ref: main
