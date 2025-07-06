@@ -4,7 +4,7 @@
 
 This is a **Proof-of-Concept (PoC)** for migrating the `hello-world` app from **AWS ECS** to **Kubernetes** (AWS EKS or K8s/Minikube on-prem).  
 It demonstrates architecture, pipelines, and migration patterns—**not a turnkey solution**.  
-This PoC serves as a high-level abstract reference designed for experienced engineers; it shows concepts and workflows that require adaptation to your specific environment, infrastructure, and organizational requirements.  
+This PoC shows concepts and workflows that require adaptation to your specific environment, infrastructure, and organizational requirements.  
 Do not expect this to deploy out-of-the-box in production without customization and rigorous validation.
 
 ---
@@ -148,10 +148,39 @@ This approach ensures a controlled, zero-downtime migration with the ability to 
 
 ---
 
+## Additional Considerations
+
+- **Security:** Production environments require hardened IAM policies, encrypted secrets management, network policies, and RBAC enforcement, which are not covered in this PoC.  
+- **Rollback Strategy:** While this PoC supports rollback via Helm and Argo CD, real-world rollback needs coordination across infrastructure, data, and application layers.  
+- **Observability:** Metrics, centralized logging, and tracing are essential for production monitoring but are outside this PoC’s scope and must be implemented separately.  
+- **Collaboration & Documentation:** Document your migration process and involve stakeholders early to ensure alignment and smooth rollout.  
+- **Extensibility:** This PoC architecture can evolve to support multi-cluster Kubernetes deployments and hybrid cloud strategies.
+
+---
+
 ## Summary
 
-This PoC demonstrates the **conceptual approach** and pipeline architecture needed to migrate workloads from ECS to Kubernetes (cloud or on-prem), maintaining simultaneous deployments during migration and enabling controlled cutover.  
-All code and workflows are provided as a **reference baseline** and require adaptation and expansion to meet your organization's production readiness and compliance needs.
+This PoC demonstrates the **conceptual approach** and pipeline architecture needed to migrate workloads from ECS to Kubernetes (cloud or on-prem), maintaining simultaneous deployments during migration and enabling controlled cutover.
+
+**Important differences between this PoC and real-world production migration include:**
+
+- Real applications are often stateful and require shared session or connection state, which complicates weighted DNS traffic splitting.  
+- Production readiness requires extensive security, monitoring, backup, and recovery setups not included here.  
+- Infrastructure provisioning must be automated and standardized with IaC for production reliability.  
+- Operational concerns such as RBAC, network policies, and certificate management must be addressed.
+
+---
+
+### Demo & Prerequisites Checklist
+
+- Kubernetes cluster provisioned with Helm and Argo CD installed and configured.  
+- GitHub Actions pipelines build and push container images correctly.  
+- Dual deployment toggles tested to deploy the app to ECS and Kubernetes environments.  
+- Helm chart updates verified to trigger Argo CD sync and deployment.  
+- Route53 or equivalent DNS weighted routing setup (demonstrable on request).  
+- Failover and rollback scenarios tested via traffic weight adjustments (demonstrable on request).  
+- Logs and metrics collection from ECS and Kubernetes deployments verified (demonstrable on request).  
+- Argo CD UI accessible for deployment monitoring with appropriate user access configured (demonstrable on request).
 
 ---
 
