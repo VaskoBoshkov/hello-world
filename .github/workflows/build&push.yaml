@@ -1,8 +1,8 @@
-name: Build & Push Image to AWS ECR
+name: Build Image
 
 on:
   push:
-    branches: [ main ] #auto triggers on changed merged with mmain branch
+    branches: [ main ]
 
 env:
   AWS_REGION: us-east-1
@@ -26,15 +26,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
+      - name: Compose image tag
+        id: tag
+        run: |
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          COUNT=$(git rev-list --count --since=midnight HEAD)
+          TAG="${DATE}-${COUNT}-${COMMIT}"
+          echo "TAG=$TAG"          >> "$GITHUB_ENV"
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+          echo "$TAG"              >  image_tag.txt
+
       - uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push image
+      - name: Build & push
         run: |
-          TAG=${GITHUB_RUN_NUMBER}
           IMAGE="${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_REPO }}:${TAG}"
           docker build -t "$IMAGE" .
           docker push  "$IMAGE"
-          echo "$TAG" > image_tag.txt
 
       - uses: actions/upload-artifact@v4
         with:
