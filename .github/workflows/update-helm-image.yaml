@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   bump-chart:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.UPDATE_HELM == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
