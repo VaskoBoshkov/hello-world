@@ -45,7 +45,7 @@ Adapt the patterns and workflows shown here to your team’s environment.**
   All architectural diagrams are generated automatically from [`docs/ci-cd.dsl`](docs/ci-cd.dsl).  
   Diagrams are output to [`docs/diagrams/`](docs/diagrams/), always up to date.
 - **Migration Mermaid Diagram:**  
-  ![Diagram](docs/diagrams/SystemContext-ci.png)  
+  ![Diagram](docs/diagrams/structurizr-pipeline.mmd)  
   (Or view the latest in the repo.)
 
 ---
