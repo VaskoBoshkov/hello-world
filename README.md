@@ -11,7 +11,7 @@ Do not expect this to deploy out-of-the-box in production without customization 
 
 ## What Are We Simulating?
 
-Currently, the `hello-world` application runs in **AWS ECS** (`ecs-hello-world.alekspetkov.com`).  
+Currently, the `hello-world` application runs in **AWS ECS** [ecs-hello-world.alekspetkov.com](https://ecs-hello-world.alekspetkov.com).  
 This PoC illustrates how to **translate** that deployment into **Kubernetes**, enabling you to run the same app on **AWS EKS** or on-premises Kubernetes, using Minikube for local development and testing.  
 This is a foundational step for enabling true multi-environment portability and a cloud-agnostic deployment model.
 
